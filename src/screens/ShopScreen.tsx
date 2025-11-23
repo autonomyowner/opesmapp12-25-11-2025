@@ -1,192 +1,308 @@
-import { FC, useRef, useState } from "react"
+import { FC, useCallback, useRef, useState, useEffect } from "react"
 import {
   Animated,
   Dimensions,
-  Image,
-  ImageStyle,
   Pressable,
-  ScrollView,
   StyleSheet,
-  TextStyle,
   View,
   ViewStyle,
+  TextStyle,
+  StatusBar,
+  Platform,
 } from "react-native"
-
+import { Video, ResizeMode } from "expo-av"
+import PagerView from "react-native-pager-view"
 import { Text } from "@/components/Text"
-import { useSafeAreaInsetsStyle } from "@/utils/useSafeAreaInsetsStyle"
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window")
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window")
 
-// Colors - matching the marketplace theme
+// Dark immersive cinema palette
 const COLORS = {
-  background: "#FAFAFA",
-  surface: "#FFFFFF",
-  surfaceElevated: "#F5F5F5",
-  accent: "#D4A84B",
-  accentDark: "#B8922F",
-  text: "#1A1A1A",
-  textSecondary: "#6B6B6B",
-  textMuted: "#9A9A9A",
-  danger: "#E53935",
-  black: "#0D0D0D",
-  border: "#EBEBEB",
+  background: "#000000",
+  surface: "#0A0A0A",
+  overlay: "rgba(0,0,0,0.3)",
+  overlayDark: "rgba(0,0,0,0.6)",
+  accent: "#FF2D55",
+  accentGlow: "rgba(255,45,85,0.4)",
+  white: "#FFFFFF",
+  whiteMuted: "rgba(255,255,255,0.85)",
+  whiteSubtle: "rgba(255,255,255,0.6)",
+  whiteGhost: "rgba(255,255,255,0.3)",
 }
 
-// Tab categories
-const TABS = ["Women", "Men", "Kids"]
-
-// Category data with images
-const CATEGORIES = [
+// Sample reels data using local videos
+const REELS_DATA = [
   {
     id: "1",
-    name: "New",
-    itemCount: 147,
-    image: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400",
+    video: require("../../assets/videos/DJwd0gEh5mS.mp4"),
+    username: "@zst_official",
+    caption: "New collection dropping soon. Stay tuned for the reveal.",
+    likes: "24.5K",
+    comments: "1,842",
+    shares: "892",
+    music: "Original Sound - ZST",
   },
   {
     id: "2",
-    name: "Clothes",
-    itemCount: 256,
-    image: "https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=400",
+    video: require("../../assets/videos/DFwAwjbRNR9.mp4"),
+    username: "@fashion_forward",
+    caption: "Street style meets haute couture. This is the future.",
+    likes: "18.2K",
+    comments: "956",
+    shares: "423",
+    music: "Trending Beat - Viral",
   },
   {
     id: "3",
-    name: "Shoes",
-    itemCount: 89,
-    image: "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=400",
+    video: require("../../assets/videos/DCXARZ4SQKs.mp4"),
+    username: "@style_maven",
+    caption: "Behind the scenes of our latest photoshoot. Pure magic.",
+    likes: "31.7K",
+    comments: "2,103",
+    shares: "1,247",
+    music: "Aesthetic Vibes - Studio",
   },
   {
     id: "4",
-    name: "Accessories",
-    itemCount: 134,
-    image: "https://images.unsplash.com/photo-1611085583191-a3b181a88401?w=400",
-  },
-  {
-    id: "5",
-    name: "Bags",
-    itemCount: 67,
-    image: "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400",
+    video: require("../../assets/videos/DDsWliiOVxD.mp4"),
+    username: "@urban_threads",
+    caption: "Craftsmanship meets creativity. Every stitch tells a story.",
+    likes: "12.9K",
+    comments: "734",
+    shares: "312",
+    music: "Lo-Fi Dreams - Chill",
   },
 ]
 
-interface CategoryCardProps {
-  category: (typeof CATEGORIES)[0]
+interface ReelItemProps {
+  reel: (typeof REELS_DATA)[0]
+  isActive: boolean
   index: number
 }
 
-const CategoryCard: FC<CategoryCardProps> = ({ category, index }) => {
-  const scaleAnim = useRef(new Animated.Value(1)).current
-  const isEven = index % 2 === 0
+const ReelItem: FC<ReelItemProps> = ({ reel, isActive, index }) => {
+  const videoRef = useRef<Video>(null)
+  const [isPlaying, setIsPlaying] = useState(true)
+  const [showHeart, setShowHeart] = useState(false)
 
-  const handlePressIn = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 0.97,
-      useNativeDriver: true,
-    }).start()
-  }
+  // Animations
+  const heartScale = useRef(new Animated.Value(0)).current
+  const heartOpacity = useRef(new Animated.Value(0)).current
+  const fadeAnim = useRef(new Animated.Value(0)).current
+  const slideAnim = useRef(new Animated.Value(50)).current
 
-  const handlePressOut = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      friction: 4,
-      useNativeDriver: true,
-    }).start()
-  }
+  // Handle video playback based on active state
+  useEffect(() => {
+    if (isActive) {
+      videoRef.current?.playAsync()
+      setIsPlaying(true)
+      // Animate in overlay elements
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 400,
+          delay: 200,
+          useNativeDriver: true,
+        }),
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          tension: 50,
+          friction: 8,
+          useNativeDriver: true,
+        }),
+      ]).start()
+    } else {
+      videoRef.current?.pauseAsync()
+      setIsPlaying(false)
+      fadeAnim.setValue(0)
+      slideAnim.setValue(50)
+    }
+  }, [isActive, fadeAnim, slideAnim])
+
+  const togglePlayPause = useCallback(() => {
+    if (isPlaying) {
+      videoRef.current?.pauseAsync()
+    } else {
+      videoRef.current?.playAsync()
+    }
+    setIsPlaying(!isPlaying)
+  }, [isPlaying])
+
+  const handleDoubleTap = useCallback(() => {
+    setShowHeart(true)
+
+    heartScale.setValue(0)
+    heartOpacity.setValue(1)
+
+    Animated.sequence([
+      Animated.spring(heartScale, {
+        toValue: 1,
+        tension: 100,
+        friction: 5,
+        useNativeDriver: true,
+      }),
+      Animated.timing(heartOpacity, {
+        toValue: 0,
+        duration: 400,
+        delay: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => setShowHeart(false))
+  }, [heartScale, heartOpacity])
+
+  // Double tap detection
+  const lastTap = useRef<number>(0)
+  const handleTap = useCallback(() => {
+    const now = Date.now()
+    if (now - lastTap.current < 300) {
+      handleDoubleTap()
+    } else {
+      togglePlayPause()
+    }
+    lastTap.current = now
+  }, [handleDoubleTap, togglePlayPause])
 
   return (
-    <Pressable onPressIn={handlePressIn} onPressOut={handlePressOut}>
+    <View style={styles.reelContainer}>
+      {/* Video */}
+      <Pressable style={styles.videoWrapper} onPress={handleTap}>
+        <Video
+          ref={videoRef}
+          source={reel.video}
+          style={styles.video}
+          resizeMode={ResizeMode.COVER}
+          isLooping
+          shouldPlay={isActive}
+          isMuted={false}
+        />
+
+        {/* Gradient overlays for depth */}
+        <View style={styles.gradientTop} />
+        <View style={styles.gradientBottom} />
+
+        {/* Pause indicator */}
+        {!isPlaying && (
+          <View style={styles.pauseOverlay}>
+            <View style={styles.pauseIcon}>
+              <View style={styles.pauseBar} />
+              <View style={styles.pauseBar} />
+            </View>
+          </View>
+        )}
+
+        {/* Double tap heart animation */}
+        {showHeart && (
+          <Animated.View
+            style={[
+              styles.bigHeart,
+              {
+                transform: [{ scale: heartScale }],
+                opacity: heartOpacity,
+              },
+            ]}
+          >
+            <Text style={styles.bigHeartText}>&#9829;</Text>
+          </Animated.View>
+        )}
+      </Pressable>
+
+
+      {/* Bottom info overlay */}
       <Animated.View
         style={[
-          styles.categoryCard,
-          { transform: [{ scale: scaleAnim }] },
+          styles.bottomOverlay,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateY: Animated.multiply(slideAnim, -0.5) }],
+          },
         ]}
       >
-        {/* Text Side */}
-        <View style={[styles.categoryTextSide, isEven ? {} : styles.categoryTextRight]}>
-          <Text style={styles.categoryName}>{category.name}</Text>
-          <Text style={styles.categoryCount}>{category.itemCount} items</Text>
+        {/* Username */}
+        <View style={styles.usernameRow}>
+          <View style={styles.avatarPlaceholder}>
+            <Text style={styles.avatarText}>{reel.username.charAt(1).toUpperCase()}</Text>
+          </View>
+          <Text style={styles.username}>{reel.username}</Text>
+          <Pressable style={styles.followButton}>
+            <Text style={styles.followText}>Follow</Text>
+          </Pressable>
         </View>
 
-        {/* Image Side */}
-        <View style={[styles.categoryImageSide, isEven ? styles.imageRight : styles.imageLeft]}>
-          <Image
-            source={{ uri: category.image }}
-            style={styles.categoryImage}
-            resizeMode="cover"
-          />
-        </View>
+        {/* Caption */}
+        <Text style={styles.caption} numberOfLines={2}>
+          {reel.caption}
+        </Text>
 
-        {/* Decorative accent line */}
-        <View style={[styles.accentLine, isEven ? styles.accentRight : styles.accentLeft]} />
+        {/* Music ticker */}
+        <View style={styles.musicRow}>
+          <View style={styles.musicNote}>
+            <Text style={styles.musicNoteText}>&#9835;</Text>
+          </View>
+          <Text style={styles.musicText} numberOfLines={1}>
+            {reel.music}
+          </Text>
+        </View>
       </Animated.View>
-    </Pressable>
-  )
-}
 
-interface TabButtonProps {
-  label: string
-  isActive: boolean
-  onPress: () => void
-}
-
-const TabButton: FC<TabButtonProps> = ({ label, isActive, onPress }) => {
-  return (
-    <Pressable onPress={onPress} style={styles.tabButton}>
-      <Text style={[styles.tabText, isActive && styles.tabTextActive]}>{label}</Text>
-      {isActive && <View style={styles.tabIndicator} />}
-    </Pressable>
+      {/* Progress bar */}
+      <View style={styles.progressContainer}>
+        <View style={styles.progressBar}>
+          <Animated.View style={styles.progressFill} />
+        </View>
+      </View>
+    </View>
   )
 }
 
 export const ShopScreen: FC = function ShopScreen() {
-  const $topInsets = useSafeAreaInsetsStyle(["top"])
-  const [activeTab, setActiveTab] = useState("Women")
+  const [activeIndex, setActiveIndex] = useState(0)
+  const pagerRef = useRef<PagerView>(null)
+
+  const handlePageSelected = useCallback((e: { nativeEvent: { position: number } }) => {
+    setActiveIndex(e.nativeEvent.position)
+  }, [])
 
   return (
-    <View style={[styles.container, $topInsets]}>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Reels</Text>
+        <View style={styles.headerTabs}>
+          <Pressable style={styles.headerTab}>
+            <Text style={[styles.headerTabText, styles.headerTabActive]}>For You</Text>
+            <View style={styles.headerTabIndicator} />
+          </Pressable>
+          <Pressable style={styles.headerTab}>
+            <Text style={styles.headerTabText}>Following</Text>
+          </Pressable>
+        </View>
+      </View>
+
+      {/* Vertical Pager for Reels */}
+      <PagerView
+        ref={pagerRef}
+        style={styles.pager}
+        initialPage={0}
+        orientation="vertical"
+        onPageSelected={handlePageSelected}
+        overdrag
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Categories</Text>
-        </View>
-
-        {/* Tab Navigation */}
-        <View style={styles.tabContainer}>
-          {TABS.map((tab) => (
-            <TabButton
-              key={tab}
-              label={tab}
-              isActive={activeTab === tab}
-              onPress={() => setActiveTab(tab)}
-            />
-          ))}
-        </View>
-
-        {/* Sale Banner */}
-        <View style={styles.saleBanner}>
-          <View style={styles.saleBannerContent}>
-            <Text style={styles.saleTitle}>SUMMER SALES</Text>
-            <Text style={styles.saleSubtitle}>Up to 50% off</Text>
+        {REELS_DATA.map((reel, index) => (
+          <View key={reel.id} style={styles.page}>
+            <ReelItem reel={reel} isActive={index === activeIndex} index={index} />
           </View>
-          {/* Decorative elements */}
-          <View style={styles.saleAccent1} />
-          <View style={styles.saleAccent2} />
-        </View>
+        ))}
+      </PagerView>
 
-        {/* Categories Grid */}
-        <View style={styles.categoriesContainer}>
-          {CATEGORIES.map((category, index) => (
-            <CategoryCard key={category.id} category={category} index={index} />
-          ))}
+      {/* Swipe hint for first load */}
+      {activeIndex === 0 && (
+        <View style={styles.swipeHint}>
+          <View style={styles.swipeArrow} />
+          <Text style={styles.swipeText}>Swipe up for more</Text>
         </View>
-
-        {/* Spacer for bottom nav */}
-        <View style={{ height: 100 }} />
-      </ScrollView>
+      )}
     </View>
   )
 }
@@ -197,204 +313,283 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   } as ViewStyle,
 
-  scrollView: {
-    flex: 1,
-  } as ViewStyle,
-
-  scrollContent: {
-    paddingBottom: 20,
-  } as ViewStyle,
-
   // Header
   header: {
-    paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 16,
-    backgroundColor: COLORS.black,
+    position: "absolute",
+    top: Platform.OS === "ios" ? 50 : 30,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    paddingHorizontal: 20,
   } as ViewStyle,
 
   headerTitle: {
-    fontSize: 26,
-    fontWeight: "700",
-    color: COLORS.surface,
-    textAlign: "center",
-    letterSpacing: 0.5,
-  } as TextStyle,
-
-  // Tabs
-  tabContainer: {
-    flexDirection: "row",
-    backgroundColor: COLORS.surface,
-    paddingVertical: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  } as ViewStyle,
-
-  tabButton: {
-    flex: 1,
-    alignItems: "center",
-    paddingVertical: 14,
-    position: "relative",
-  } as ViewStyle,
-
-  tabText: {
-    fontSize: 15,
-    fontWeight: "500",
-    color: COLORS.textMuted,
-    letterSpacing: 0.3,
-  } as TextStyle,
-
-  tabTextActive: {
-    color: COLORS.text,
-    fontWeight: "700",
-  } as TextStyle,
-
-  tabIndicator: {
-    position: "absolute",
-    bottom: 0,
-    left: "25%",
-    right: "25%",
-    height: 3,
-    backgroundColor: COLORS.accent,
-    borderRadius: 2,
-  } as ViewStyle,
-
-  // Sale Banner
-  saleBanner: {
-    marginHorizontal: 20,
-    marginTop: 20,
-    marginBottom: 24,
-    height: 100,
-    borderRadius: 16,
-    backgroundColor: COLORS.black,
-    overflow: "hidden",
-    position: "relative",
-    justifyContent: "center",
-  } as ViewStyle,
-
-  saleBannerContent: {
-    paddingHorizontal: 28,
-    zIndex: 2,
-  } as ViewStyle,
-
-  saleTitle: {
-    fontSize: 28,
-    fontWeight: "900",
-    color: COLORS.surface,
-    letterSpacing: 2,
-    marginBottom: 4,
-  } as TextStyle,
-
-  saleSubtitle: {
-    fontSize: 15,
-    fontWeight: "500",
-    color: COLORS.textMuted,
-    letterSpacing: 0.5,
-  } as TextStyle,
-
-  saleAccent1: {
-    position: "absolute",
-    right: -20,
-    top: -30,
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: COLORS.accent,
-    opacity: 0.15,
-  } as ViewStyle,
-
-  saleAccent2: {
-    position: "absolute",
-    right: 40,
-    bottom: -40,
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: COLORS.accent,
-    opacity: 0.1,
-  } as ViewStyle,
-
-  // Categories
-  categoriesContainer: {
-    paddingHorizontal: 20,
-    gap: 16,
-  } as ViewStyle,
-
-  categoryCard: {
-    flexDirection: "row",
-    height: 120,
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    overflow: "hidden",
-    shadowColor: COLORS.black,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
-    position: "relative",
-  } as ViewStyle,
-
-  categoryTextSide: {
-    flex: 1,
-    justifyContent: "center",
-    paddingHorizontal: 24,
-  } as ViewStyle,
-
-  categoryTextRight: {
-    alignItems: "flex-end",
-  } as ViewStyle,
-
-  categoryName: {
     fontSize: 22,
     fontWeight: "800",
-    color: COLORS.text,
-    marginBottom: 4,
-    letterSpacing: 0.3,
+    color: COLORS.white,
+    textAlign: "center",
+    letterSpacing: 1,
+    textShadowColor: COLORS.overlayDark,
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
+    marginBottom: 12,
   } as TextStyle,
 
-  categoryCount: {
+  headerTabs: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 24,
+  } as ViewStyle,
+
+  headerTab: {
+    alignItems: "center",
+  } as ViewStyle,
+
+  headerTabText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: COLORS.whiteSubtle,
+    textShadowColor: COLORS.overlayDark,
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  } as TextStyle,
+
+  headerTabActive: {
+    color: COLORS.white,
+  } as TextStyle,
+
+  headerTabIndicator: {
+    width: 24,
+    height: 3,
+    backgroundColor: COLORS.white,
+    borderRadius: 2,
+    marginTop: 6,
+  } as ViewStyle,
+
+  // Pager
+  pager: {
+    flex: 1,
+  } as ViewStyle,
+
+  page: {
+    flex: 1,
+  } as ViewStyle,
+
+  // Reel Item
+  reelContainer: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  } as ViewStyle,
+
+  videoWrapper: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  } as ViewStyle,
+
+  video: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  } as ViewStyle,
+
+  // Gradient overlays
+  gradientTop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 200,
+    backgroundColor: "rgba(0,0,0,0.4)",
+  } as ViewStyle,
+
+  gradientBottom: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 300,
+    backgroundColor: "rgba(0,0,0,0.5)",
+  } as ViewStyle,
+
+  // Pause overlay
+  pauseOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: COLORS.overlay,
+    justifyContent: "center",
+    alignItems: "center",
+  } as ViewStyle,
+
+  pauseIcon: {
+    flexDirection: "row",
+    gap: 12,
+  } as ViewStyle,
+
+  pauseBar: {
+    width: 8,
+    height: 40,
+    backgroundColor: COLORS.white,
+    borderRadius: 4,
+  } as ViewStyle,
+
+  // Double tap heart
+  bigHeart: {
+    position: "absolute",
+    justifyContent: "center",
+    alignItems: "center",
+  } as ViewStyle,
+
+  bigHeartText: {
+    fontSize: 120,
+    color: COLORS.accent,
+    textShadowColor: COLORS.accentGlow,
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 30,
+  } as TextStyle,
+
+  // Bottom overlay
+  bottomOverlay: {
+    position: "absolute",
+    bottom: 100,
+    left: 16,
+    right: 16,
+  } as ViewStyle,
+
+  usernameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 12,
+  } as ViewStyle,
+
+  avatarPlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.accent,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: COLORS.white,
+  } as ViewStyle,
+
+  avatarText: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: COLORS.white,
+  } as TextStyle,
+
+  username: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: COLORS.white,
+    textShadowColor: COLORS.overlayDark,
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  } as TextStyle,
+
+  followButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: COLORS.white,
+    marginLeft: 4,
+  } as ViewStyle,
+
+  followText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: COLORS.white,
+  } as TextStyle,
+
+  caption: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: COLORS.whiteMuted,
+    lineHeight: 20,
+    marginBottom: 12,
+    textShadowColor: COLORS.overlayDark,
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  } as TextStyle,
+
+  musicRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  } as ViewStyle,
+
+  musicNote: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    backgroundColor: COLORS.whiteGhost,
+    justifyContent: "center",
+    alignItems: "center",
+  } as ViewStyle,
+
+  musicNoteText: {
+    fontSize: 14,
+    color: COLORS.white,
+  } as TextStyle,
+
+  musicText: {
     fontSize: 13,
     fontWeight: "500",
-    color: COLORS.textMuted,
+    color: COLORS.whiteMuted,
+    flex: 1,
   } as TextStyle,
 
-  categoryImageSide: {
-    width: SCREEN_WIDTH * 0.45,
-    height: "100%",
-  } as ViewStyle,
-
-  imageRight: {
-    borderTopLeftRadius: 60,
-    borderBottomLeftRadius: 60,
-    overflow: "hidden",
-  } as ViewStyle,
-
-  imageLeft: {
-    borderTopRightRadius: 60,
-    borderBottomRightRadius: 60,
-    overflow: "hidden",
-  } as ViewStyle,
-
-  categoryImage: {
-    width: "100%",
-    height: "100%",
-  } as ImageStyle,
-
-  accentLine: {
+  // Progress bar
+  progressContainer: {
     position: "absolute",
-    width: 4,
-    height: 40,
-    backgroundColor: COLORS.accent,
-    top: "50%",
-    marginTop: -20,
-    borderRadius: 2,
-  } as ViewStyle,
-
-  accentRight: {
+    bottom: 85,
     left: 0,
+    right: 0,
+    paddingHorizontal: 2,
   } as ViewStyle,
 
-  accentLeft: {
-    right: 0,
+  progressBar: {
+    height: 2,
+    backgroundColor: COLORS.whiteGhost,
+    borderRadius: 1,
   } as ViewStyle,
+
+  progressFill: {
+    height: "100%",
+    width: "35%",
+    backgroundColor: COLORS.white,
+    borderRadius: 1,
+  } as ViewStyle,
+
+  // Swipe hint
+  swipeHint: {
+    position: "absolute",
+    bottom: 120,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+  } as ViewStyle,
+
+  swipeArrow: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 8,
+    borderRightWidth: 8,
+    borderBottomWidth: 10,
+    borderLeftColor: "transparent",
+    borderRightColor: "transparent",
+    borderBottomColor: COLORS.whiteSubtle,
+    marginBottom: 6,
+  } as ViewStyle,
+
+  swipeText: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: COLORS.whiteSubtle,
+    letterSpacing: 0.5,
+  } as TextStyle,
 })
