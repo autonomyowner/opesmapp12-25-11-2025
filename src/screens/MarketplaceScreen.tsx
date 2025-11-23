@@ -185,7 +185,11 @@ const ProductCard: FC<ProductCardProps> = ({ product, compact }) => {
   )
 }
 
-export const MarketplaceScreen: FC = function MarketplaceScreen() {
+interface MarketplaceScreenProps {
+  onNavigateToCart?: () => void
+}
+
+export const MarketplaceScreen: FC<MarketplaceScreenProps> = function MarketplaceScreen({ onNavigateToCart }) {
   const $topInsets = useSafeAreaInsetsStyle(["top"])
 
   return (
@@ -205,7 +209,7 @@ export const MarketplaceScreen: FC = function MarketplaceScreen() {
             <Pressable style={styles.iconButton}>
               <Text style={styles.iconText}>&#128269;</Text>
             </Pressable>
-            <Pressable style={styles.iconButton}>
+            <Pressable style={styles.iconButton} onPress={onNavigateToCart}>
               <View style={styles.cartBadge}>
                 <Text style={styles.cartBadgeText}>3</Text>
               </View>

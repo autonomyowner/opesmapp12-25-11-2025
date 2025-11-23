@@ -58,6 +58,10 @@ export const MainTabsScreen: FC = function MainTabsScreen() {
     pagerRef.current?.setPage(index)
   }
 
+  const handleNavigateToCart = () => {
+    pagerRef.current?.setPage(2) // Cart is at index 2
+  }
+
   const tabWidth = 100 / TABS.length
 
   return (
@@ -72,7 +76,7 @@ export const MainTabsScreen: FC = function MainTabsScreen() {
         overScrollMode="always"
       >
         <View key="home" style={styles.page}>
-          <MarketplaceScreen />
+          <MarketplaceScreen onNavigateToCart={handleNavigateToCart} />
         </View>
         <View key="shop" style={styles.page}>
           <ShopScreen />
