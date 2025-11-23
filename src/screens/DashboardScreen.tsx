@@ -10,13 +10,13 @@ const COLORS = {
   textSecondary: "#8A8A8A",
 }
 
-export const WishlistScreen: FC = function WishlistScreen() {
+export const DashboardScreen: FC = function DashboardScreen() {
   const $topInsets = useSafeAreaInsetsStyle(["top"])
 
   return (
     <View style={[styles.container, $topInsets]}>
-      <Text style={styles.title}>Wishlist</Text>
-      <Text style={styles.subtitle}>No items in wishlist</Text>
+      <Text style={styles.title}>Dashboard</Text>
+      <Text style={styles.subtitle}>Your dashboard is empty</Text>
     </View>
   )
 }

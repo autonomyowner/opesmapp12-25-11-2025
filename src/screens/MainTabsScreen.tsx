@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { MarketplaceScreen } from "./MarketplaceScreen"
 import { ShopScreen } from "./ShopScreen"
 import { CartScreen } from "./CartScreen"
-import { WishlistScreen } from "./WishlistScreen"
+import { DashboardScreen } from "./DashboardScreen"
 import { ProfileScreen } from "./ProfileScreen"
 
 const COLORS = {
@@ -29,7 +29,7 @@ const TABS = [
   { key: "home", label: "Home", icon: "🏠" },
   { key: "shop", label: "Shop", icon: "🛍" },
   { key: "cart", label: "Cart", icon: "🛒" },
-  { key: "wishlist", label: "Wishlist", icon: "♡" },
+  { key: "dashboard", label: "Dashboard", icon: "📊" },
   { key: "profile", label: "Profile", icon: "👤" },
 ]
 
@@ -80,8 +80,8 @@ export const MainTabsScreen: FC = function MainTabsScreen() {
         <View key="cart" style={styles.page}>
           <CartScreen />
         </View>
-        <View key="wishlist" style={styles.page}>
-          <WishlistScreen />
+        <View key="dashboard" style={styles.page}>
+          <DashboardScreen />
         </View>
         <View key="profile" style={styles.page}>
           <ProfileScreen />
