@@ -30,14 +30,15 @@ import {
   SellerStats,
   SellerOrder,
   SellerProduct,
-  subscribeToSellerOrders,
-  subscribeToSellerProducts,
-  addProduct,
-  deleteProduct,
-  updateOrderStatus,
-  getProductCategories,
+  subscribeToSellerOrdersWithCache,
+  subscribeToSellerProductsWithCache,
+  addProductWithCache,
+  deleteProductWithCache,
+  updateOrderStatusWithCache,
+  invalidateSellerCaches,
   NewProductInput,
-} from "@/services/supabase/sellerService"
+} from "@/services/supabase/sellerService.cached"
+import { fetchProductCategories } from "@/services/supabase/productService.cached"
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window")
 
@@ -572,13 +573,9 @@ export const DashboardScreen: FC = function DashboardScreen() {
     if (isAuthenticated && isSeller) {
       loadDashboardData()
 
-      // Subscribe to real-time updates
-      const ordersSubscription = subscribeToSellerOrders(user!.id, () => {
-        loadDashboardData()
-      })
-      const productsSubscription = subscribeToSellerProducts(user!.id, () => {
-        loadDashboardData()
-      })
+      // Subscribe to real-time updates with cache invalidation
+      const ordersSubscription = subscribeToSellerOrdersWithCache(user!.id)
+      const productsSubscription = subscribeToSellerProductsWithCache(user!.id)
 
       return () => {
         ordersSubscription.unsubscribe()
@@ -592,14 +589,17 @@ export const DashboardScreen: FC = function DashboardScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true)
+    if (user?.id) {
+      await invalidateSellerCaches(user.id)
+    }
     await loadDashboardData()
     setRefreshing(false)
-  }, [loadDashboardData])
+  }, [loadDashboardData, user?.id])
 
   const handleAddProduct = async (productData: NewProductInput) => {
     if (!user?.id) return
 
-    const result = await addProduct(user.id, {
+    const result = await addProductWithCache(user.id, {
       ...productData,
       seller_category: user.seller_category || "fournisseur",  // Use correct enum value
     })
@@ -615,7 +615,7 @@ export const DashboardScreen: FC = function DashboardScreen() {
   const handleDeleteProduct = async (productId: string) => {
     if (!user?.id) return
 
-    const result = await deleteProduct(productId, user.id)
+    const result = await deleteProductWithCache(productId, user.id)
     if (result.success) {
       Alert.alert("Succes", "Produit supprime")
       loadDashboardData()
@@ -625,7 +625,9 @@ export const DashboardScreen: FC = function DashboardScreen() {
   }
 
   const handleUpdateOrderStatus = async (orderId: string, status: SellerOrder["status"]) => {
-    const result = await updateOrderStatus(orderId, status)
+    if (!user?.id) return
+
+    const result = await updateOrderStatusWithCache(orderId, status, user.id)
     if (result.success) {
       loadDashboardData()
     } else {

@@ -27,6 +27,10 @@ export default function Root() {
     initI18n()
       .then(() => setIsI18nInitialized(true))
       .then(() => loadDateFnsLocale())
+      .catch((error) => {
+        console.error('Error initializing i18n:', error)
+        setIsI18nInitialized(true) // Fallback: continue anyway
+      })
   }, [])
 
   const loaded = fontsLoaded && isI18nInitialized
@@ -40,6 +44,16 @@ export default function Root() {
       SplashScreen.hideAsync()
     }
   }, [loaded])
+
+  // Fallback: Force hide splash screen after 5 seconds
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      console.warn('Forcing splash screen to hide after timeout')
+      SplashScreen.hideAsync()
+    }, 5000)
+
+    return () => clearTimeout(timeout)
+  }, [])
 
   if (!loaded) {
     return null

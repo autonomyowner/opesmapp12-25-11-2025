@@ -24,8 +24,9 @@ import {
   fetchProductCategories,
   fetchAllProducts,
   subscribeToProducts,
+  invalidateProductCaches,
   ProductWithImage,
-} from "@/services/supabase"
+} from "@/services/supabase/productService.cached"
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window")
 
@@ -42,49 +43,44 @@ const COLORS = {
   danger: "#E53935",
 }
 
-// Search Icon Component
+// Search Icon Component - Refined minimal style
 const SearchIcon: FC<{ size?: number; color?: string }> = ({ size = 24, color = "#FFFFFF" }) => {
-  const strokeWidth = 2.5
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Circle
-        cx="11"
-        cy="11"
-        r="7"
+        cx="10.5"
+        cy="10.5"
+        r="6.5"
         stroke={color}
-        strokeWidth={strokeWidth}
+        strokeWidth={1.5}
         strokeLinecap="round"
-        strokeLinejoin="round"
       />
       <Path
-        d="M20 20L16 16"
+        d="M15.5 15.5L20 20"
         stroke={color}
-        strokeWidth={strokeWidth}
+        strokeWidth={1.5}
         strokeLinecap="round"
-        strokeLinejoin="round"
       />
     </Svg>
   )
 }
 
-// Cart Icon Component
+// Cart Icon Component - Elegant shopping bag
 const CartIcon: FC<{ size?: number; color?: string }> = ({ size = 24, color = "#FFFFFF" }) => {
-  const strokeWidth = 2.5
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
-        d="M6 6C6 3.79086 7.79086 2 10 2H14C16.2091 2 18 3.79086 18 6V7H20C21.1046 7 22 7.89543 22 9V20C22 21.1046 21.1046 22 20 22H4C2.89543 22 2 21.1046 2 20V9C2 7.89543 2.89543 7 4 7H6V6Z"
+        d="M5 7H19L18 21H6L5 7Z"
         stroke={color}
-        strokeWidth={strokeWidth}
+        strokeWidth={1.5}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <Path
-        d="M6 7V6C6 3.79086 7.79086 2 10 2H14C16.2091 2 18 3.79086 18 6V7"
+        d="M8 7V6C8 3.79086 9.79086 2 12 2C14.2091 2 16 3.79086 16 6V7"
         stroke={color}
-        strokeWidth={strokeWidth}
+        strokeWidth={1.5}
         strokeLinecap="round"
-        strokeLinejoin="round"
       />
     </Svg>
   )
@@ -268,6 +264,7 @@ export const MarketplaceScreen: FC<MarketplaceScreenProps> = function Marketplac
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true)
+    await invalidateProductCaches()
     await loadData()
     setRefreshing(false)
   }, [loadData])
@@ -303,10 +300,10 @@ export const MarketplaceScreen: FC<MarketplaceScreenProps> = function Marketplac
           {/* Floating Icons Only */}
           <View style={styles.floatingHeaderIcons}>
             <Pressable style={styles.iconButton}>
-              <SearchIcon size={24} color="#FFFFFF" />
+              <SearchIcon size={22} color="#FFFFFF" />
             </Pressable>
             <Pressable style={styles.iconButton} onPress={onNavigateToCart}>
-              <CartIcon size={24} color="#FFFFFF" />
+              <CartIcon size={22} color="#FFFFFF" />
             </Pressable>
           </View>
         </View>
@@ -429,17 +426,22 @@ const styles = StyleSheet.create({
   // Floating Icons Over Video
   floatingHeaderIcons: {
     position: "absolute",
-    top: 30,
-    right: 20,
+    top: 16,
+    right: 16,
     flexDirection: "row",
-    gap: 16,
+    gap: 10,
     zIndex: 100,
   } as ViewStyle,
 
   iconButton: {
-    padding: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(0, 0, 0, 0.35)",
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
   } as ViewStyle,
 
   // Categories

@@ -1,7 +1,7 @@
 {
-  "name": "MyApp",
-  "slug": "MyApp",
-  "scheme": "myapp",
+  "name": "ZST",
+  "slug": "zst",
+  "scheme": "zst",
   "version": "1.0.0",
   "orientation": "portrait",
   "userInterfaceStyle": "automatic",
@@ -13,7 +13,7 @@
   ],
   "android": {
     "icon": "./assets/images/app-icon-android-legacy.png",
-    "package": "com.myapp",
+    "package": "com.zst",
     "adaptiveIcon": {
       "foregroundImage": "./assets/images/app-icon-android-adaptive-foreground.png",
       "backgroundImage": "./assets/images/app-icon-android-adaptive-background.png"
@@ -23,7 +23,7 @@
   "ios": {
     "icon": "./assets/images/app-icon-ios.png",
     "supportsTablet": true,
-    "bundleIdentifier": "com.myapp"
+    "bundleIdentifier": "com.zst"
   },
   "web": {
     "favicon": "./assets/images/app-icon-web-favicon.png",
@@ -58,6 +58,10 @@
   "extra": {
     "ignite": {
       "version": "11.3.2"
+    },
+    "router": {},
+    "eas": {
+      "projectId": "97c7d6f2-200d-4534-87ff-eacd62e6ce75"
     }
   }
 }

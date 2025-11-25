@@ -3,9 +3,7 @@ import {
   View,
   StyleSheet,
   Pressable,
-  Text,
   ViewStyle,
-  TextStyle,
   Animated,
 } from "react-native"
 import PagerView from "react-native-pager-view"
@@ -24,10 +22,11 @@ import { useRealtimeOrders } from "@/hooks/useRealtimeOrders"
 
 const COLORS = {
   background: "#0D0D0D",
-  surface: "#1A1A1A",
+  navBackground: "#0A0A0A",
   accent: "#D4A84B",
-  textMuted: "#5A5A5A",
-  text: "#FFFFFF",
+  iconInactive: "#4A4A4A",
+  iconActive: "#FFFFFF",
+  divider: "rgba(255, 255, 255, 0.06)",
 }
 
 const TABS = [
@@ -53,23 +52,42 @@ export const MainTabsScreen: FC = function MainTabsScreen() {
     enabled: !!user?.id && user?.role === 'seller',
   })
 
-  // Animation for tab indicator
-  const indicatorPosition = useRef(new Animated.Value(0)).current
+  // Animation values for each tab
+  const scaleAnims = useRef(
+    TABS.map(() => new Animated.Value(1))
+  ).current
 
   const handlePageSelected = (e: { nativeEvent: { position: number } }) => {
     const position = e.nativeEvent.position
     setCurrentPage(position)
 
-    // Animate indicator
-    Animated.spring(indicatorPosition, {
-      toValue: position,
-      useNativeDriver: true,
-      friction: 8,
-      tension: 50,
-    }).start()
+    // Animate all tabs
+    scaleAnims.forEach((anim, i) => {
+      Animated.spring(anim, {
+        toValue: i === position ? 1.15 : 1,
+        useNativeDriver: true,
+        friction: 6,
+        tension: 120,
+      }).start()
+    })
   }
 
   const handleTabPress = (index: number) => {
+    // Immediate scale down feedback
+    Animated.sequence([
+      Animated.timing(scaleAnims[index], {
+        toValue: 0.85,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnims[index], {
+        toValue: currentPage === index ? 1.15 : 1,
+        friction: 6,
+        tension: 120,
+        useNativeDriver: true,
+      }),
+    ]).start()
+
     pagerRef.current?.setPage(index)
   }
 
@@ -84,8 +102,6 @@ export const MainTabsScreen: FC = function MainTabsScreen() {
   const handleBackFromProduct = () => {
     setSelectedProduct(null)
   }
-
-  const tabWidth = 100 / TABS.length
 
   // Show ProductDetailScreen if a product is selected
   if (selectedProduct) {
@@ -125,51 +141,35 @@ export const MainTabsScreen: FC = function MainTabsScreen() {
         </View>
       </PagerView>
 
-      {/* Bottom Tab Bar */}
-      <View style={[styles.tabBar, { paddingBottom: insets.bottom + 8 }]}>
-        {/* Animated Indicator */}
-        <Animated.View
-          style={[
-            styles.tabIndicator,
-            {
-              width: `${tabWidth}%`,
-              transform: [
-                {
-                  translateX: indicatorPosition.interpolate({
-                    inputRange: [0, TABS.length - 1],
-                    outputRange: [0, (TABS.length - 1) * (100 / TABS.length) * 3.9],
-                  }),
-                },
-              ],
-            },
-          ]}
-        />
-
-        {TABS.map((tab, index) => (
-          <Pressable
-            key={tab.key}
-            style={styles.tabItem}
-            onPress={() => handleTabPress(index)}
-          >
-            <View style={styles.tabIconContainer}>
-              <TabIcon
-                name={tab.iconName}
-                active={currentPage === index}
-                size={24}
-                color={currentPage === index ? COLORS.accent : COLORS.textMuted}
-                badge={tab.key === 'dashboard' ? pendingCount : undefined}
-              />
-            </View>
-            <Text
-              style={[
-                styles.tabLabel,
-                currentPage === index && styles.tabLabelActive,
-              ]}
+      {/* Fixed Bottom Tab Bar */}
+      <View style={[styles.tabBarContainer, { paddingBottom: Math.max(insets.bottom, 8) }]}>
+        <View style={styles.divider} />
+        <View style={styles.tabBar}>
+          {TABS.map((tab, index) => (
+            <Pressable
+              key={tab.key}
+              style={styles.tabItem}
+              onPress={() => handleTabPress(index)}
             >
-              {tab.label}
-            </Text>
-          </Pressable>
-        ))}
+              <Animated.View
+                style={[
+                  styles.iconWrapper,
+                  {
+                    transform: [{ scale: scaleAnims[index] }],
+                  },
+                ]}
+              >
+                <TabIcon
+                  name={tab.iconName}
+                  active={currentPage === index}
+                  size={22}
+                  color={currentPage === index ? COLORS.iconActive : COLORS.iconInactive}
+                  badge={tab.key === 'dashboard' ? pendingCount : undefined}
+                />
+              </Animated.View>
+            </Pressable>
+          ))}
+        </View>
       </View>
     </View>
   )
@@ -189,50 +189,31 @@ const styles = StyleSheet.create({
     flex: 1,
   } as ViewStyle,
 
-  tabBar: {
-    flexDirection: "row",
-    backgroundColor: COLORS.surface,
-    paddingTop: 12,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    position: "relative",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 10,
+  tabBarContainer: {
+    backgroundColor: COLORS.navBackground,
   } as ViewStyle,
 
-  tabIndicator: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    height: 3,
-    backgroundColor: COLORS.accent,
-    borderRadius: 2,
+  divider: {
+    height: 1,
+    backgroundColor: COLORS.divider,
+  } as ViewStyle,
+
+  tabBar: {
+    flexDirection: "row",
+    paddingTop: 8,
+    paddingBottom: 4,
   } as ViewStyle,
 
   tabItem: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 8,
   } as ViewStyle,
 
-  tabIconContainer: {
-    marginBottom: 4,
+  iconWrapper: {
     alignItems: "center",
     justifyContent: "center",
+    width: 40,
+    height: 40,
   } as ViewStyle,
-
-  tabLabel: {
-    fontSize: 10,
-    fontWeight: "500",
-    color: COLORS.textMuted,
-  } as TextStyle,
-
-  tabLabelActive: {
-    fontWeight: "700",
-    color: COLORS.accent,
-  } as TextStyle,
 })
