@@ -18,6 +18,7 @@ import { DashboardScreen } from "./DashboardScreen"
 import { ProfileScreen } from "./ProfileScreen"
 import { ProductDetailScreen } from "./ProductDetailScreen"
 import { ProductWithImage } from "@/services/supabase/productService"
+import { TabIcon } from "@/components/TabIcon"
 
 const COLORS = {
   background: "#0D0D0D",
@@ -28,11 +29,11 @@ const COLORS = {
 }
 
 const TABS = [
-  { key: "home", label: "Home", icon: "🏠" },
-  { key: "shop", label: "Shop", icon: "🛍" },
-  { key: "freelance", label: "Freelance", icon: "💼" },
-  { key: "dashboard", label: "Dashboard", icon: "📊" },
-  { key: "profile", label: "Profile", icon: "👤" },
+  { key: "home", label: "Home", iconName: "home" as const },
+  { key: "shop", label: "Shop", iconName: "shop" as const },
+  { key: "freelance", label: "Freelance", iconName: "freelance" as const },
+  { key: "dashboard", label: "Dashboard", iconName: "dashboard" as const },
+  { key: "profile", label: "Profile", iconName: "profile" as const },
 ]
 
 export const MainTabsScreen: FC = function MainTabsScreen() {
@@ -139,14 +140,14 @@ export const MainTabsScreen: FC = function MainTabsScreen() {
             style={styles.tabItem}
             onPress={() => handleTabPress(index)}
           >
-            <Text
-              style={[
-                styles.tabIcon,
-                currentPage === index && styles.tabIconActive,
-              ]}
-            >
-              {tab.icon}
-            </Text>
+            <View style={styles.tabIconContainer}>
+              <TabIcon
+                name={tab.iconName}
+                active={currentPage === index}
+                size={24}
+                color={currentPage === index ? COLORS.accent : COLORS.textMuted}
+              />
+            </View>
             <Text
               style={[
                 styles.tabLabel,
@@ -206,15 +207,11 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   } as ViewStyle,
 
-  tabIcon: {
-    fontSize: 22,
-    color: COLORS.textMuted,
+  tabIconContainer: {
     marginBottom: 4,
-  } as TextStyle,
-
-  tabIconActive: {
-    color: COLORS.accent,
-  } as TextStyle,
+    alignItems: "center",
+    justifyContent: "center",
+  } as ViewStyle,
 
   tabLabel: {
     fontSize: 10,
