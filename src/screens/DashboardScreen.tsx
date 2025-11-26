@@ -40,6 +40,8 @@ import {
 } from "@/services/supabase/sellerService.cached"
 import { fetchProductCategories } from "@/services/supabase/productService.cached"
 import { getProductCategories } from "@/services/supabase/sellerService"
+import { B2BMarketplaceScreen } from "./B2BMarketplaceScreen"
+import { canBuyInB2B, canSellInB2B } from "@/services/supabase/b2bService"
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window")
 
@@ -544,8 +546,11 @@ export const DashboardScreen: FC = function DashboardScreen() {
   const [isLoading, setIsLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [showAddProduct, setShowAddProduct] = useState(false)
+  const [showB2BMarketplace, setShowB2BMarketplace] = useState(false)
 
   const isSeller = user?.role === "seller" || user?.role === "admin"
+  const userCategory = user?.seller_category || "fournisseur"
+  const hasB2BAccess = canBuyInB2B(userCategory) || canSellInB2B(userCategory)
 
   const loadDashboardData = useCallback(async () => {
     if (!user?.id || !isSeller) return
@@ -667,8 +672,46 @@ export const DashboardScreen: FC = function DashboardScreen() {
     )
   }
 
+  // Show B2B Marketplace if selected
+  if (showB2BMarketplace) {
+    return (
+      <B2BMarketplaceScreen onBack={() => setShowB2BMarketplace(false)} />
+    )
+  }
+
   return (
     <View style={[styles.container, $topInsets]}>
+      {/* B2B Banner - Only for Grossistes and Fournisseurs */}
+      {hasB2BAccess && (
+        <TouchableOpacity
+          style={styles.b2bBanner}
+          onPress={() => setShowB2BMarketplace(true)}
+          activeOpacity={0.8}
+        >
+          <LinearGradient
+            colors={[COLORS.goldDark, COLORS.gold, COLORS.goldLight]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.b2bGradient}
+          >
+            <View style={styles.b2bContent}>
+              <Text style={styles.b2bWelcome}>Bienvenue, {user?.full_name || "Vendeur"}</Text>
+              <Text style={styles.b2bTitle}>Marche B2B</Text>
+              <Text style={styles.b2bSubtitle}>
+                {canSellInB2B(userCategory) && canBuyInB2B(userCategory)
+                  ? "Achetez et vendez en gros"
+                  : canSellInB2B(userCategory)
+                  ? "Vendez aux professionnels"
+                  : "Achetez en gros"}
+              </Text>
+            </View>
+            <View style={styles.b2bArrow}>
+              <Text style={styles.b2bArrowText}>&gt;</Text>
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
+      )}
+
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.greeting}>Bonjour,</Text>
@@ -1408,5 +1451,51 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.text,
     fontWeight: "700",
+  } as TextStyle,
+
+  // B2B Banner
+  b2bBanner: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 4,
+    borderRadius: 16,
+    overflow: "hidden",
+  } as ViewStyle,
+  b2bGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+  } as ViewStyle,
+  b2bContent: {
+    flex: 1,
+  } as ViewStyle,
+  b2bWelcome: {
+    fontSize: 12,
+    color: "rgba(0, 0, 0, 0.6)",
+    marginBottom: 2,
+  } as TextStyle,
+  b2bTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#000",
+    marginBottom: 2,
+  } as TextStyle,
+  b2bSubtitle: {
+    fontSize: 13,
+    color: "rgba(0, 0, 0, 0.7)",
+  } as TextStyle,
+  b2bArrow: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(0, 0, 0, 0.15)",
+    justifyContent: "center",
+    alignItems: "center",
+  } as ViewStyle,
+  b2bArrowText: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#000",
   } as TextStyle,
 })
